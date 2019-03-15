@@ -1,0 +1,89 @@
+---
+- name: Install Tensorflow and Keras on ubuntu1604
+  hosts: all
+  become: yes
+  handlers:
+  - include: roles/common/handlers/main.yml 
+
+  vars:
+    - cuda_network_installer: http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_9.0.176-1_amd64.deb
+    - cuda_apt_key: http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub
+    - cudnn_runtime: https://<MY OWN MIRROR HOST>/libcudnn7_7.0.5.15-1%2Bcuda9.0_amd64.deb
+
+ 
+  tasks:
+    - name: Install required packages
+      apt: pkg={{ item }} state=installed
+      with_items:
+        - gcc
+        - g++
+        - gfortran
+        - build-essential
+        - linux-image-generic
+        - python3-dev
+        - python3-pip
+        - python3-virtualenv
+        - python3-venv
+        - libblas-dev
+        - liblapack-dev
+        - libatlas-base-dev 
+        - software-properties-common
+        - pkg-config
+        - apt-utils
+        - liblapack-dev
+        - libfreetype6
+        - libfreetype6-dev
+        - libpng12-dev
+        - libyaml-dev
+        - g++
+        - libffi-dev
+        - libzmq-dev
+        - libzmq1
+        - graphviz
+        - python3-numpy
+        - swig
+        - libcurl3-dev 
+
+    - name: Install kernel headers
+      apt:
+        name=linux-headers-{{ ansible_kernel }}
+        state=present
+        update_cache=yes
+
+    - name: Install CUDA network installer
+      apt:
+        deb={{ cuda_network_installer }}
+
+    - name: Add Nvidia's repo key.
+      apt_key:
+        url={{ cuda_apt_key }}
+        state=present
+
+    - name: Install CUDA packages (1.2G+)
+      apt:
+        pkg={{ item }}
+        update_cache=yes
+        state=installed
+      with_items:
+        - cuda-9-0
+
+    # - name: Install cuDNN
+    #   apt:
+    #     deb={{ item }}
+    #   with_items:
+    #     - "{{ cudnn_runtime }}"
+
+- name: Set up work environment
+  hosts: all
+  tasks:
+    - name: Setup Python environment
+      pip: name={{ item }}
+           virtualenv='{{ ansible_env.HOME }}/env'
+           virtualenv_command='/usr/bin/python3 -m venv'
+      with_items:
+        - jupyterlab
+        - 'tensorflow==1.5'
+        - 'tensorflow-gpu==1.5'
+        - keras
+        - h5py
+        - pydot

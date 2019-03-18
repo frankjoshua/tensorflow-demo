@@ -76,10 +76,10 @@
 #define SHOW_TEMP_TEXT
 
 //low range of the sensor (this will be blue on the screen)
-#define MINTEMP 10
+#define MINTEMP 0
 
 //high range of the sensor (this will be red on the screen)
-#define MAXTEMP 20
+#define MAXTEMP 40
 
 //the colors we will be using
 const uint16_t camColors[] = {0x480F,
@@ -287,15 +287,25 @@ void drawButtons(){
 void loop() {
   //read all the pixels
   amg.readPixels(pixels);
+
+  //Find the temp range
+  int maxTemp = MINTEMP;
+  int minTemp = MAXTEMP;
+  for(int i=0; i<AMG88xx_PIXEL_ARRAY_SIZE; i++){
+    if(pixels[i] >= maxTemp) maxTemp = pixels[i];
+    else if(pixels[i] <= minTemp) minTemp = pixels[i];
+  }
+//  maxTemp = maxTemp * 0.9;
+//  minTemp = minTemp * 1.1;
   
   for(int i=0; i<AMG88xx_PIXEL_ARRAY_SIZE; i++){
 
     int colorTemp;
-    if(pixels[i] >= MAXTEMP) colorTemp = MAXTEMP;
-    else if(pixels[i] <= MINTEMP) colorTemp = MINTEMP;
+    if(pixels[i] >= maxTemp) colorTemp = maxTemp;
+    else if(pixels[i] <= minTemp) colorTemp = minTemp;
     else colorTemp = pixels[i];
     
-    uint8_t colorIndex = map(colorTemp, MINTEMP, MAXTEMP, 0, 255);
+    uint8_t colorIndex = map(colorTemp, minTemp, maxTemp, 0, 255);
     
     colorIndex = constrain(colorIndex, 0, 255);
     //draw the pixels!

@@ -76,10 +76,13 @@
 #define SHOW_TEMP_TEXT
 
 //low range of the sensor (this will be blue on the screen)
-#define MINTEMP 0
+#define MINTEMP 20
 
 //high range of the sensor (this will be red on the screen)
-#define MAXTEMP 40
+#define MAXTEMP 28
+
+
+
 
 //the colors we will be using
 const uint16_t camColors[] = {0x480F,
@@ -110,13 +113,59 @@ const uint16_t camColors[] = {0x480F,
 0xF1E0,0xF1C0,0xF1A0,0xF180,0xF160,0xF140,0xF100,0xF0E0,0xF0C0,0xF0A0,
 0xF080,0xF060,0xF040,0xF020,0xF800,};
 
+Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
+
+int maxTemp = MINTEMP;
+int minTemp = MAXTEMP;
+ /** 
+  *  Begin Interpolation code 
+  */
+#define INTERPOLATED_COLS 24
+#define INTERPOLATED_ROWS 24
+float get_point(float *p, uint8_t rows, uint8_t cols, int8_t x, int8_t y);
+void set_point(float *p, uint8_t rows, uint8_t cols, int8_t x, int8_t y, float f);
+void get_adjacents_1d(float *src, float *dest, uint8_t rows, uint8_t cols, int8_t x, int8_t y);
+void get_adjacents_2d(float *src, float *dest, uint8_t rows, uint8_t cols, int8_t x, int8_t y);
+float cubicInterpolate(float p[], float x);
+float bicubicInterpolate(float p[], float x, float y);
+void interpolate_image(float *src, uint8_t src_rows, uint8_t src_cols, 
+                       float *dest, uint8_t dest_rows, uint8_t dest_cols);
+                       
+void drawpixels(float *p, uint8_t rows, uint8_t cols, uint8_t boxWidth, uint8_t boxHeight, boolean showVal) {
+  int colorTemp;
+  for (int y=0; y<rows; y++) {
+    for (int x=0; x<cols; x++) {
+      float val = get_point(p, rows, cols, x, y);
+      if(val >= maxTemp) colorTemp = maxTemp;
+      else if(val <= minTemp) colorTemp = minTemp;
+      else colorTemp = val;
+      
+      uint8_t colorIndex = map(colorTemp, MINTEMP, MAXTEMP, 0, 255);
+      colorIndex = constrain(colorIndex, 0, 255);
+      //draw the pixels!
+      uint16_t color;
+      color = val * 2;
+      tft.fillRect(40+boxWidth * x, boxHeight * y, boxWidth, boxHeight, camColors[colorIndex]);
+        
+      if (showVal) {
+        tft.setCursor(boxWidth * y + boxWidth/2 - 12, 40 + boxHeight * x + boxHeight/2 - 4);
+        tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(1);
+        tft.print(val,1);
+      }
+    } 
+  }
+}
+/**
+ * End Interpolation code
+ */
+ 
 // This is calibration data for the raw touch data to the screen coordinates
 #define TS_MINX 150
 #define TS_MINY 130
 #define TS_MAXX 3800
 #define TS_MAXY 4000
 
-Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
+
 
 Adafruit_STMPE610 ts = Adafruit_STMPE610(STMPE_CS);
 
@@ -132,6 +181,7 @@ struct Button {
   int color;
   boolean isTouched;
 };
+
 #define NUM_OF_BUTTONS 4
 Button buttons[NUM_OF_BUTTONS];
 int colors[6] = {
@@ -289,8 +339,6 @@ void loop() {
   amg.readPixels(pixels);
 
   //Find the temp range
-  int maxTemp = MINTEMP;
-  int minTemp = MAXTEMP;
   for(int i=0; i<AMG88xx_PIXEL_ARRAY_SIZE; i++){
     if(pixels[i] >= maxTemp) maxTemp = pixels[i];
     else if(pixels[i] <= minTemp) minTemp = pixels[i];
@@ -298,28 +346,33 @@ void loop() {
 //  maxTemp = maxTemp * 0.9;
 //  minTemp = minTemp * 1.1;
   
-  for(int i=0; i<AMG88xx_PIXEL_ARRAY_SIZE; i++){
-
-    int colorTemp;
-    if(pixels[i] >= maxTemp) colorTemp = maxTemp;
-    else if(pixels[i] <= minTemp) colorTemp = minTemp;
-    else colorTemp = pixels[i];
-    
-    uint8_t colorIndex = map(colorTemp, minTemp, maxTemp, 0, 255);
-    
-    colorIndex = constrain(colorIndex, 0, 255);
-    //draw the pixels!
-    tft.fillRect(displayPixelHeight * floor(i / 8), 40 + displayPixelWidth * ((AMG88xx_PIXEL_ARRAY_SIZE - i - 1) % 8),
-        displayPixelHeight, displayPixelWidth, camColors[colorIndex]);
-        
-    #ifdef SHOW_TEMP_TEXT
-      tft.setCursor( displayPixelHeight * floor(i / 8) + displayPixelHeight/2 - 12, 
-                     40 + displayPixelWidth * ((AMG88xx_PIXEL_ARRAY_SIZE - i - 1) % 8) + displayPixelHeight/2 - 4);
-      tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(1);
-      tft.print(pixels[i],1);
-    #endif
-    
-  } 
+//  for(int i=0; i<AMG88xx_PIXEL_ARRAY_SIZE; i++){
+//
+//    int colorTemp;
+//    if(pixels[i] >= maxTemp) colorTemp = maxTemp;
+//    else if(pixels[i] <= minTemp) colorTemp = minTemp;
+//    else colorTemp = pixels[i];
+//    
+//    uint8_t colorIndex = map(colorTemp, minTemp, maxTemp, 0, 255);
+//    
+//    colorIndex = constrain(colorIndex, 0, 255);
+//    //draw the pixels!
+//    tft.fillRect(displayPixelHeight * floor(i / 8), 40 + displayPixelWidth * ((AMG88xx_PIXEL_ARRAY_SIZE - i - 1) % 8),
+//        displayPixelHeight, displayPixelWidth, camColors[colorIndex]);
+//        
+//    #ifdef SHOW_TEMP_TEXT
+//      tft.setCursor( displayPixelHeight * floor(i / 8) + displayPixelHeight/2 - 12, 
+//                     40 + displayPixelWidth * ((AMG88xx_PIXEL_ARRAY_SIZE - i - 1) % 8) + displayPixelHeight/2 - 4);
+//      tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(1);
+//      tft.print(pixels[i],1);
+//    #endif
+//    
+//  } 
+  //Draw interpolated image
+  float dest_2d[INTERPOLATED_ROWS * INTERPOLATED_COLS];
+  interpolate_image(pixels, 8, 8, dest_2d, INTERPOLATED_ROWS, INTERPOLATED_COLS);
+  uint16_t boxsize = min(tft.width() / INTERPOLATED_COLS, tft.height() / INTERPOLATED_COLS);
+  drawpixels(dest_2d, INTERPOLATED_ROWS, INTERPOLATED_COLS, boxsize, boxsize, false);
 
   //Check for touches
   if (!ts.bufferEmpty()) {
@@ -339,21 +392,18 @@ void loop() {
       
       if(!b->isTouched && touched){
         b->isTouched = true;
-        onButtonTouched(b);
+        onButtonTouched(b->text);
       } else if (b->isTouched && !touched){
         b->isTouched = false;
       }
     }
   }
-
-
-
 }
 
-void onButtonTouched(Button *button){
+void onButtonTouched(String b){
 
-  Serial.print(button->id);
-  String name = String("/") + button->text + "/" + String(random(2147483647)) + ".CSV";
+  //Serial.print(b->id);
+  String name = String("/") + b + "/" + String(random(2147483647)) + ".CSV";
   // Length (with one extra character for the null terminator)
   int str_len = name.length() + 1; 
   // Prepare the character array (the buffer) 
@@ -378,6 +428,7 @@ void onButtonTouched(Button *button){
   
   drawMessage(name);
 }
+
 
 
 

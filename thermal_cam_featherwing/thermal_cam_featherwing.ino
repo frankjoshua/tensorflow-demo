@@ -145,7 +145,7 @@ void drawpixels(float *p, uint8_t rows, uint8_t cols, uint8_t boxWidth, uint8_t 
       //draw the pixels!
       uint16_t color;
       color = val * 2;
-      tft.fillRect(40+boxWidth * x, boxHeight * y, boxWidth, boxHeight, camColors[colorIndex]);
+      tft.fillRect(boxWidth * x, boxHeight * y + boxHeight * 2, boxWidth, boxHeight, camColors[colorIndex]);
         
       if (showVal) {
         tft.setCursor(boxWidth * y + boxWidth/2 - 12, 40 + boxHeight * x + boxHeight/2 - 4);

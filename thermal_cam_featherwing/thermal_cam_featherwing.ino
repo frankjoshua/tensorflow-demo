@@ -140,7 +140,7 @@ void drawpixels(float *p, uint8_t rows, uint8_t cols, uint8_t boxWidth, uint8_t 
       else if(val <= minTemp) colorTemp = minTemp;
       else colorTemp = val;
       
-      uint8_t colorIndex = map(colorTemp, MINTEMP, MAXTEMP, 0, 255);
+      uint8_t colorIndex = map(colorTemp, minTemp, maxTemp, 0, 255);
       colorIndex = constrain(colorIndex, 0, 255);
       //draw the pixels!
       uint16_t color;
@@ -253,65 +253,65 @@ String idToName(int id){
 void setup() {
   delay(500);
   Serial.begin(115200);
-    Serial.println(F("AMG88xx thermal camera!"));
+  Serial.println(F("AMG88xx thermal camera!"));
 
-    tft.begin();
-    tft.fillScreen(ILI9341_BLACK);
+  tft.begin();
+  tft.fillScreen(ILI9341_BLACK);
 
-    displayPixelWidth = tft.width() / 8;
-    displayPixelHeight = tft.width() / 8; //Keep pixels square 
+  displayPixelWidth = tft.width() / 8;
+  displayPixelHeight = tft.width() / 8; //Keep pixels square 
 
-    tft.setRotation(0);
-    
-    bool status;
-    
-    // default settings
-    status = amg.begin();
-    if (!status) {
-        drawMessage("No AMG88xx sensor.");
-        while (1);
-    }
-    
-    Serial.println("-- Thermal Camera Test --");
-    delay(100); // let sensor boot up
-
-    if (!ts.begin()) {
-      drawMessage("Couldn't start touchscreen controller");
+  tft.setRotation(0);
+  
+  bool status;
+  
+  // default settings
+  status = amg.begin();
+  if (!status) {
+      drawMessage("No AMG88xx sensor.");
       while (1);
-    }
+  }
+  
+  Serial.println("-- Thermal Camera Test --");
+  delay(100); // let sensor boot up
 
-    if(!SD.begin(14)){
-      drawMessage("Card Mount Failed");
-      while (1);
-    }
-    randomSeed(analogRead(0));
-    
-    //Create buttons
-    int width = tft.width() / NUM_OF_BUTTONS;
-    for(int i = 0; i < NUM_OF_BUTTONS; i++){
-      int x = width * i;
-      int y = tft.height() - width;
-      buttons[i] = {
-        i,
-        x,y,
-        width,width,
-        idToName(i),
-        false
-        };
-        
-        //Create folder
-        // Length (with one extra character for the null terminator)
-        int str_len = buttons[i].text.length() + 2; 
-        
-        // Prepare the character array (the buffer) 
-        char char_array[str_len];
-        
-        // Copy it over 
-        ("/" + buttons[i].text).toCharArray(char_array, str_len);
-        createDir(SD, char_array);
-    }   
+  if (!ts.begin()) {
+    drawMessage("Couldn't start touchscreen controller");
+    while (1);
+  }
 
-    drawButtons();
+  if(!SD.begin(14)){
+    drawMessage("Card Mount Failed");
+    while (1);
+  }
+  randomSeed(analogRead(0));
+  
+  //Create buttons
+  int width = tft.width() / NUM_OF_BUTTONS;
+  for(int i = 0; i < NUM_OF_BUTTONS; i++){
+    int x = width * i;
+    int y = tft.height() - width;
+    buttons[i] = {
+      i,
+      x,y,
+      width,width,
+      idToName(i),
+      false
+      };
+      
+      //Create folder
+      // Length (with one extra character for the null terminator)
+      int str_len = buttons[i].text.length() + 2; 
+      
+      // Prepare the character array (the buffer) 
+      char char_array[str_len];
+      
+      // Copy it over 
+      ("/" + buttons[i].text).toCharArray(char_array, str_len);
+      createDir(SD, char_array);
+  }   
+
+  drawButtons();
 
 }
 
